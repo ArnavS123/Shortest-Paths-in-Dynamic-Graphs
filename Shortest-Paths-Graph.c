@@ -132,7 +132,7 @@ void printPath(int parent[][10], int destination, int step)
         return;
     }
     printPath(parent, parent[destination][step], (step - 1 + N) % N);
-    printf("%d ", destination);
+    printf("%d\n", destination);
 }
 
 void dijkstra(int source, int destination)
