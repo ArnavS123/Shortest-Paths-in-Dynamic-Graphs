@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
     readGraph(argv[1]);
 
     int source, destination;
-    while (printf("> "), scanf("%d %d", &source, &destination) == 2) // User input
+    while (scanf("%d %d", &source, &destination) == 2) // User input
     {
         dijkstra(source, destination);
     }
