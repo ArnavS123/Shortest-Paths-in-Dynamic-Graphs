@@ -132,7 +132,7 @@ void printPath(int parent[][10], int destination, int step)
         return;
     }
     printPath(parent, parent[destination][step], (step - 1 + N) % N);
-    printf("%d\n", destination);
+    printf("%d ", destination);
 }
 
 void dijkstra(int source, int destination)
@@ -195,6 +195,7 @@ void dijkstra(int source, int destination)
 
     printf("%d ", source);
     printPath(parent, destination, min_step);
+    printf("\n");
 
     free(minHeap->pos);
     free(minHeap->array);
@@ -243,7 +244,7 @@ int main(int argc, char *argv[])
     readGraph(argv[1]);
 
     int source, destination;
-    while (scanf("%d %d", &source, &destination) == 2) // User input
+    while (printf("> "), scanf("%d %d", &source, &destination) == 2) // User input
     {
         dijkstra(source, destination);
     }
