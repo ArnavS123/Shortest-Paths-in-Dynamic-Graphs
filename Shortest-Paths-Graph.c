@@ -137,9 +137,9 @@ void printPath(int parent[][10], int destination, int step)
 
 void dijkstra(int source, int destination)
 {
-    int dist[MAX_VERTICES][10]; // Distance array considering steps
-    int parent[MAX_VERTICES][10]; // Parent array considering steps
-    MinHeap* minHeap = createMinHeap(MAX_VERTICES * 10); // Increased capacity
+    int dist[MAX_VERTICES][10];
+    int parent[MAX_VERTICES][10];
+    MinHeap* minHeap = createMinHeap(MAX_VERTICES * 10);
 
     for (int vt = 0; vt < V; vt++)
     {
@@ -181,7 +181,6 @@ void dijkstra(int source, int destination)
         }
     }
 
-    // Find the minimum distance to the destination considering all steps
     int min_dist = INF;
     int min_step = -1;
     for (int step = 0; step < N; step++)
@@ -205,13 +204,8 @@ void dijkstra(int source, int destination)
 void readGraph(char *filename)
 {
     FILE *file = fopen(filename, "r");
-    if (file == NULL)
-    {
-        fprintf(stderr, "Error opening file\n");
-        exit(EXIT_FAILURE);
-    }
 
-    fscanf(file, "%d %d", &V, &N); // First line of graph.txt
+    fscanf(file, "%d %d", &V, &N);
 
     for (int i = 0; i < V; i++)
     {
@@ -219,13 +213,13 @@ void readGraph(char *filename)
     }
 
     int vs, vt;
-    while (fscanf(file, "%d %d", &vs, &vt) != EOF) // Source vertex and target vertex (next lines of graph.txt)
+    while (fscanf(file, "%d %d", &vs, &vt) != EOF)
     {
         Edge edge;
         edge.target = vt;
         for (int i = 0; i < N; i++)
         {
-            fscanf(file, "%d", &edge.weights[i]); // Weight(s)
+            fscanf(file, "%d", &edge.weights[i]);
         }
         graph[vs].edges[graph[vs].edge_count++] = edge;
     }
@@ -235,16 +229,10 @@ void readGraph(char *filename)
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
-        fprintf(stderr, "Usage: %s <points file>\n", argv[0]);
-        return(1);
-    }
-
     readGraph(argv[1]);
 
     int source, destination;
-    while (scanf("%d %d", &source, &destination) == 2) // User input
+    while (scanf("%d %d", &source, &destination) == 2)
     {
         dijkstra(source, destination);
     }
