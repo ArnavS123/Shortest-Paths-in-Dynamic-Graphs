@@ -33,7 +33,7 @@ struct Heap
 };
 
 struct Vertex graph[MAX_VERTICES];
-int V, N; // V is the number of vertices in the graph and N is the period of the edge weights
+int V, N; // V is the number of vertices in the graph and N is the number of edge weights
 
 struct Heap* build_heap(int max_size)
 {
@@ -147,7 +147,7 @@ void print_path(int parent[][10], int destination, int step)
 void dijkstra(int source, int destination)
 {
     int dist[MAX_VERTICES][10];
-    int parent[MAX_VERTICES][10];
+    int parent_node[MAX_VERTICES][10];
     struct Heap* heap = build_heap(MAX_VERTICES);
 
     for (int vert_target = 0; vert_target < V; vert_target++)
@@ -160,7 +160,7 @@ void dijkstra(int source, int destination)
             heap->arr[ind].distance = BIG;
             heap->arr[ind].step = step;
             heap->pos[ind] = ind;
-            parent[vert_target][step] = -1;
+            parent_node[vert_target][step] = -1;
         }
     }
 
@@ -171,21 +171,21 @@ void dijkstra(int source, int destination)
 
     while (heap->curr_size != 0)
     {
-        struct Node node = extract_min(heap);
-        int vert_source = node.vertex / N;
-        int currentStep = node.step;
+        struct Node root = extract_min(heap);
+        int vert_source = root.vertex / N;
+        int curr_step = root.step;
 
         for (int i = 0; i < graph[vert_source].num_edges; i++)
         {
             struct Edge edge = graph[vert_source].edges[i];
             int vert_target = edge.target;
-            int next_step = (currentStep + 1) % N;
-            int weight = edge.weights[currentStep];
+            int weight = edge.weights[curr_step];
+            int next_step = (curr_step + 1) % N;
 
-            if (dist[vert_source][currentStep] != BIG && dist[vert_source][currentStep] + weight < dist[vert_target][next_step])
+            if (dist[vert_source][curr_step] + weight < dist[vert_target][next_step])
             {
-                dist[vert_target][next_step] = dist[vert_source][currentStep] + weight;
-                parent[vert_target][next_step] = vert_source;
+                dist[vert_target][next_step] = dist[vert_source][curr_step] + weight;
+                parent_node[vert_target][next_step] = vert_source;
                 decrease_key(heap, vert_target * N + next_step, dist[vert_target][next_step], next_step);
             }
         }
@@ -204,7 +204,7 @@ void dijkstra(int source, int destination)
     }
 
     printf("%d ", source);
-    print_path(parent, destination, min_step);
+    print_path(parent_node, destination, 0);
     printf("\n");
 
     free(heap->pos);
@@ -217,7 +217,7 @@ void read_graph(char *filename)
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file!\n");
+        printf("Error openng file!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -238,7 +238,9 @@ void read_graph(char *filename)
         {
             fscanf(file, "%d", &edge.weights[i]);
         }
-        graph[vert_source].edges[graph[vert_source].num_edges++] = edge;
+        int edge_index = graph[vert_source].num_edges;
+        graph[vert_source].num_edges++;
+        graph[vert_source].edges[edge_index] = edge;
     }
 
     fclose(file);
@@ -256,7 +258,6 @@ int main(int argc, char *argv[])
 
     int source;
     int destination;
-
     while (scanf("%d %d", &source, &destination) == 2)
     {
         dijkstra(source, destination);
