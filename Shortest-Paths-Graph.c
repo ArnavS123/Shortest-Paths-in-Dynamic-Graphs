@@ -35,7 +35,6 @@ struct Heap
 struct Vertex graph[MAX_VERTICES];
 int V; // V is the number of vertices in the graph
 int N; // N is the number of edge weights
-int direct_paths[100][100];
 
 struct Heap* build_heap(int max_size)
 {
@@ -243,7 +242,6 @@ void read_graph(char *filename)
         int edge_index = graph[vert_source].num_edges;
         graph[vert_source].num_edges++;
         graph[vert_source].edges[edge_index] = edge;
-        direct_paths[vert_source][vert_target] = 1;
     }
 
     fclose(file);
@@ -263,14 +261,7 @@ int main(int argc, char *argv[])
     int destination;
     while (scanf("%d %d", &source, &destination) == 2)
     {
-        if (direct_paths[source][destination] == 1)
-        {
-            printf("%d %d\n", source, destination);
-        }
-        else
-        {
-            dijkstra(source, destination);
-        }
+        dijkstra(source, destination);
     }
 
     return(0);
