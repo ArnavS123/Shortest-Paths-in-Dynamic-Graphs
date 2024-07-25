@@ -39,7 +39,7 @@ int direct_paths[100][100];
 
 struct Heap* build_heap(int max_size)
 {
-    struct Heap* heap = (struct heap*)malloc(sizeof(struct heap*));
+    struct Heap* heap = (struct Heap*)malloc(sizeof(struct Heap));
     heap->pos = (int *)malloc(max_size * sizeof(int));
     heap->curr_size = 0;
     heap->max_size = max_size;
