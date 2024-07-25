@@ -149,7 +149,7 @@ void dijkstra(int source, int destination)
 {
     int dist[MAX_VERTICES][10];
     int parent_node[MAX_VERTICES][10];
-    struct Heap* heap = build_heap(MAX_VERTICES);
+    struct Heap* heap = build_heap(MAX_VERTICES * N);
 
     for (int vert_target = 0; vert_target < V; vert_target++)
     {
