@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -std=c11 -g -O3 -lm
-SRCS = Shortest-Paths-Graph.c
+CFLAGS = -std=c11 -g -O3 -lm -w
+SRCS = TEMP.c #Shortest-Paths-Graph.c
 OBJS = $(SRCS:.c=.o)
 TARGET = pa3
 

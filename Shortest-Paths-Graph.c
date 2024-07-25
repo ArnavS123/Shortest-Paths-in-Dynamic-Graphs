@@ -137,9 +137,9 @@ void printPath(int parent[][10], int destination, int step)
 
 void dijkstra(int source, int destination)
 {
-    int dist[MAX_VERTICES][10];
-    int parent[MAX_VERTICES][10];
-    MinHeap* minHeap = createMinHeap(MAX_VERTICES * 10);
+    int dist[MAX_VERTICES][10]; // Distance array considering steps
+    int parent[MAX_VERTICES][10]; // Parent array considering steps
+    MinHeap* minHeap = createMinHeap(MAX_VERTICES * 10); // Increased capacity
 
     for (int vt = 0; vt < V; vt++)
     {
@@ -181,6 +181,7 @@ void dijkstra(int source, int destination)
         }
     }
 
+    // Find the minimum distance to the destination considering all steps
     int min_dist = INF;
     int min_step = -1;
     for (int step = 0; step < N; step++)
@@ -204,6 +205,11 @@ void dijkstra(int source, int destination)
 void readGraph(char *filename)
 {
     FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(EXIT_FAILURE);
+    }
 
     fscanf(file, "%d %d", &V, &N);
 
@@ -229,9 +235,17 @@ void readGraph(char *filename)
 
 int main(int argc, char *argv[])
 {
+    if (argc != 2)
+    {
+        printf("ERROR!\n");
+        return(1);
+    }
+
     readGraph(argv[1]);
 
-    int source, destination;
+    int source;
+    int destination;
+
     while (scanf("%d %d", &source, &destination) == 2)
     {
         dijkstra(source, destination);
