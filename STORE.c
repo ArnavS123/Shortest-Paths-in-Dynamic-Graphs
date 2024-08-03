@@ -155,101 +155,72 @@ void decrease_key(Heap* heap, int vertex_to_update, int new_distance, int new_st
     }
 }
 
-void populate_heap(int* dist, Heap* heap, Data data)
-{
-    for (int i = 0; i < data.V; i++)
-    {
-        Node node;
-        node.vertex = i;
-        node.distance = dist[i];
-        node.step = 0;
-
-        heap->arr[i] = node;
-        heap->curr_size++;
-    }
-}
-
-/*
-    Dijkstra's Algorithm Pseudocode:
-    set all distances to INF
-    set all predecessors to none
-    set all vertices to unexplored
-    populate heap
-    set distance of source to 0
-    while heap:
-        u = least-valued unexplored vertex
-        Set u to explored
-        for each edge (u, v):
-            if dist[u] + len(u, v) < dist[v]:
-                dist[v] = dist[u] + len(u, v)
-                prev[v] = u
-*/
-
 void dijkstra(int source, int destination, Data data)
 {
-    Heap* minheap = build_heap(MAX_LINES);
-    
-    int dist[data.V];
-    int prev[data.V]; // Array that tracks path (IMPORTANT)
-    int explored[data.V];
+    int distances[data.V];
+    int previous[data.V]; // Array to track the path
+    int visited[data.V];
 
-    for (int i = 0; i < data.V; i++)
-    {
-        dist[i] = INF; // Set all distances to 
-        prev[i] = -1; // Dummy value
-        explored[i] = 0; // Set all vertices to unexplored
+    for (int i = 0; i < data.V; i++) {
+        distances[i] = INF;
+        visited[i] = 0;
+        previous[i] = -1; // Initialize previous array
     }
 
-    dist[source] = 0; // Set distance to source to 0
+    distances[source] = 0;
 
-    populate_heap(dist, minheap, data);
+    Heap* minheap = build_heap(MAX_LINES);
+
+    for (int i = 0; i < data.V; i++) {
+        Node node = {i, distances[i], 0};
+        minheap->arr[i] = node;
+        minheap->curr_size++;
+    }
 
     while (minheap->curr_size > 0)
     {
-        Node min = extract_min(minheap); // Get min value from heap
-        int u = min.vertex; // Next vertex (has smallest distance)
+        Node minNode = extract_min(minheap);
+        int u = minNode.vertex;
 
-        if (u == destination)
-        {
+        if (u == destination) {
+            printf("Shortest path distance: %d\n", distances[destination]);
+
+            // Output the path
             int path[MAX_LINES];
             int path_index = 0;
-
-            for (int at = destination; at != -1; at = prev[at])
-            {
+            for (int at = destination; at != -1; at = previous[at]) {
                 path[path_index++] = at;
             }
-
-            for (int i = path_index - 1; i >= 0; i--)
-            {
+            for (int i = path_index - 1; i >= 0; i--) {
                 printf("%d ", path[i]);
             }
-
             printf("\n");
             break;
         }
 
-        if (explored[u])
-        {
-            continue;
-        }
-        explored[u] = 1;
+        if (visited[u]) continue;
+        visited[u] = 1;
 
         for (int i = 0; i < MAX_LINES; i++)
         {
             if (data.edges[i].vs == u)
             {
                 int v = data.edges[i].vt;
-                int weight = data.edges[i].weights[min.step % data.N];
+                // Select weight based on current step using modulo operation
+                int weight = data.edges[i].weights[minNode.step % data.N]; 
 
-                if (!explored[v] && dist[u] != INF && dist[u] + weight < dist[v])
+                if (!visited[v] && distances[u] != INF && distances[u] + weight < distances[v])
                 {
-                    dist[v] = dist[u] + weight;
-                    prev[v] = u; // Path
-                    decrease_key(minheap, v, dist[v], min.step + 1);
+                    distances[v] = distances[u] + weight;
+                    previous[v] = u; // Track the path
+                    decrease_key(minheap, v, distances[v], minNode.step + 1);
                 }
             }
         }
     }
+
+    free(minheap->arr);
+    free(minheap);
 }
 
 Data read_data(const char *filename)

@@ -1,188 +1,199 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 
-#define MAX_VERTICES 1000
-#define INF INT_MAX
+#define MAX_VERTICES 2000
+#define MAX_EDGES MAX_VERTICES
+#define BIG 99999
 
-typedef struct
+struct Edge
 {
     int target;
     int weights[10];
-} Edge;
+};
 
-typedef struct
+struct Vertex
 {
-    Edge edges[MAX_VERTICES];
-    int edge_count;
-} Vertex;
+    struct Edge edges[MAX_EDGES];
+    int num_edges;
+};
 
-Vertex graph[MAX_VERTICES];
-int V, N;
-
-typedef struct
+struct Node
 {
     int vertex;
     int distance;
     int step;
-} MinHeapNode;
+};
 
-typedef struct
+struct Heap
 {
-    MinHeapNode *array;
-    int size;
-    int capacity;
+    struct Node *arr;
+    int curr_size;
+    int max_size;
     int *pos;
-} MinHeap;
+};
 
-MinHeap* createMinHeap(int capacity)
+struct Vertex graph[MAX_VERTICES];
+int V; // V is the number of vertices in the graph
+int N; // N is the number of edge weights
+
+struct Heap* build_heap(int max_size)
 {
-    MinHeap* minHeap = (MinHeap*)malloc(sizeof(MinHeap));
-    minHeap->pos = (int *)malloc(capacity * sizeof(int));
-    minHeap->size = 0;
-    minHeap->capacity = capacity;
-    minHeap->array = (MinHeapNode*)malloc(capacity * sizeof(MinHeapNode));
+    struct Heap* heap = (struct Heap*)malloc(sizeof(struct Heap));
+    heap->pos = (int *)malloc(max_size * sizeof(int));
+    heap->curr_size = 0;
+    heap->max_size = max_size;
+    heap->arr = (struct Node*)malloc(max_size * sizeof(struct Node));
 
-    return(minHeap);
+    return(heap);
 }
 
-void swapMinHeapNode(MinHeapNode* a, MinHeapNode* b)
+void swap(struct Node* a, struct Node* b)
 {
-    MinHeapNode c = *a;
+    struct Node temp = *a;
     *a = *b;
-    *b = c;
+    *b = temp;
 }
 
-void minHeapify(MinHeap* minHeap, int ind)
+void heapify(struct Heap* heap, int ind)
 {
-    int smallest, left, right;
-    smallest = ind;
-    left = 2 * ind + 1;
-    right = 2 * ind + 2;
-
-    if (left < minHeap->size && minHeap->array[left].distance < minHeap->array[smallest].distance)
+    int left = ind * 2 + 1;
+    int right = ind * 2 + 2;
+    int min = ind;
+ 
+    if (left >= heap->curr_size || left < 0)
     {
-        smallest = left;
+        left = -1;
     }
-    
-    if (right < minHeap->size && minHeap->array[right].distance < minHeap->array[smallest].distance)
+    if (right >= heap->curr_size || right < 0)
     {
-        smallest = right;
+        right = -1;
     }
 
-    if (smallest != ind)
+    if (left != -1 && heap->arr[left].distance < heap->arr[ind].distance)
     {
-        MinHeapNode smallestNode = minHeap->array[smallest];
-        MinHeapNode indNode = minHeap->array[ind];
+        min = left;
+    }
+    if (right != -1 && heap->arr[right].distance < heap->arr[min].distance)
+    {
+        min = right;
+    }
 
-        minHeap->pos[smallestNode.vertex] = ind;
-        minHeap->pos[indNode.vertex] = smallest;
+    if (min != ind)
+    {
+        heap->pos[heap->arr[min].vertex] = ind;
+        heap->pos[heap->arr[ind].vertex] = min;
 
-        swapMinHeapNode(&minHeap->array[smallest], &minHeap->array[ind]);
+        swap(&heap->arr[min], &heap->arr[ind]);
 
-        minHeapify(minHeap, smallest);
+        heapify(heap, min);
     }
 }
 
-int isEmpty(MinHeap* minHeap)
+struct Node extract_min(struct Heap* heap)
 {
-    return(minHeap->size == 0);
-}
-
-MinHeapNode extractMin(MinHeap* minHeap)
-{
-    if (isEmpty(minHeap))
+    if (heap->curr_size == 0)
     {
-        return((MinHeapNode){-1, INF, -1});
+        struct Node empty = {-999, BIG, -999};
+        return(empty);
     }
 
-    MinHeapNode root = minHeap->array[0];
-    MinHeapNode lastNode = minHeap->array[minHeap->size - 1];
-    minHeap->array[0] = lastNode;
+    struct Node root = heap->arr[0];
+    struct Node last_node = heap->arr[heap->curr_size - 1];
+    heap->arr[0] = last_node;
 
-    minHeap->pos[root.vertex] = minHeap->size - 1;
-    minHeap->pos[lastNode.vertex] = 0;
+    heap->pos[root.vertex] = heap->curr_size - 1;
+    heap->pos[last_node.vertex] = 0;
 
-    --(minHeap->size);
-    minHeapify(minHeap, 0);
+    (heap->curr_size)--;
+    heapify(heap, 0);
 
     return(root);
 }
 
-void decreaseKey(MinHeap* minHeap, int vt, int dist, int step)
+void decrease_key(struct Heap* heap, int vert_target, int dist, int step)
 {
-    int i = minHeap->pos[vt];
-    minHeap->array[i].distance = dist;
-    minHeap->array[i].step = step;
+    int index = heap->pos[vert_target];
+    heap->arr[index].distance = dist;
+    heap->arr[index].step = step;
 
-    while (i && minHeap->array[i].distance < minHeap->array[(i - 1) / 2].distance)
+    while (index > 0)
     {
-        minHeap->pos[minHeap->array[i].vertex] = (i-1)/2;
-        minHeap->pos[minHeap->array[(i-1)/2].vertex] = i;
-        swapMinHeapNode(&minHeap->array[i], &minHeap->array[(i - 1) / 2]);
+        int parent_index = (index - 1) / 2; // Index of parent node
 
-        i = (i - 1) / 2;
+        if (heap->arr[index].distance >= heap->arr[parent_index].distance)
+        {
+            break;
+        }
+
+        heap->pos[heap->arr[index].vertex] = parent_index;
+        heap->pos[heap->arr[parent_index].vertex] = index;
+
+        swap(&heap->arr[index], &heap->arr[parent_index]);
+
+        index = parent_index;
     }
 }
 
-void printPath(int parent[][10], int destination, int step)
+void print_path(int parent[][10], int destination, int step)
 {
     if (parent[destination][step] == -1)
     {
         return;
     }
-    printPath(parent, parent[destination][step], (step - 1 + N) % N);
+    
+    print_path(parent, parent[destination][step], (step - 1 + N) % N);
     printf("%d ", destination);
 }
 
 void dijkstra(int source, int destination)
 {
-    int dist[MAX_VERTICES][10]; // Distance array considering steps
-    int parent[MAX_VERTICES][10]; // Parent array considering steps
-    MinHeap* minHeap = createMinHeap(MAX_VERTICES * 10); // Increased capacity
+    int dist[MAX_VERTICES][10];
+    int parent_node[MAX_VERTICES][10];
+    struct Heap* heap = build_heap(MAX_VERTICES * N);
 
-    for (int vt = 0; vt < V; vt++)
+    for (int vert_target = 0; vert_target < V; vert_target++)
     {
         for (int step = 0; step < N; step++)
         {
-            dist[vt][step] = INF;
-            minHeap->array[vt * N + step].vertex = vt * N + step;
-            minHeap->array[vt * N + step].distance = INF;
-            minHeap->array[vt * N + step].step = step;
-            minHeap->pos[vt * N + step] = vt * N + step;
-            parent[vt][step] = -1;
+            int ind = vert_target * N + step;
+            dist[vert_target][step] = BIG;
+            heap->arr[ind].vertex = ind;
+            heap->arr[ind].distance = BIG;
+            heap->arr[ind].step = step;
+            heap->pos[ind] = ind;
+            parent_node[vert_target][step] = -1;
         }
     }
 
-    minHeap->array[source * N].distance = 0;
+    heap->arr[source * N].distance = 0;
     dist[source][0] = 0;
-    decreaseKey(minHeap, source * N, 0, 0);
-    minHeap->size = V * N;
+    decrease_key(heap, source * N, 0, 0);
+    heap->curr_size = V * N;
 
-    while (!isEmpty(minHeap))
+    while (heap->curr_size != 0)
     {
-        MinHeapNode minHeapNode = extractMin(minHeap);
-        int vs = minHeapNode.vertex / N;
-        int currentStep = minHeapNode.step;
+        struct Node root = extract_min(heap);
+        int vert_source = root.vertex / N;
+        int curr_step = root.step;
 
-        for (int i = 0; i < graph[vs].edge_count; i++)
+        for (int i = 0; i < graph[vert_source].num_edges; i++)
         {
-            Edge edge = graph[vs].edges[i];
-            int vt = edge.target;
-            int nextStep = (currentStep + 1) % N;
-            int weight = edge.weights[currentStep];
+            struct Edge edge = graph[vert_source].edges[i];
+            int vert_target = edge.target;
+            int weight = edge.weights[curr_step];
+            int next_step = (curr_step + 1) % N;
 
-            if (dist[vs][currentStep] != INF && dist[vs][currentStep] + weight < dist[vt][nextStep])
+            if (dist[vert_source][curr_step] + weight < dist[vert_target][next_step])
             {
-                dist[vt][nextStep] = dist[vs][currentStep] + weight;
-                parent[vt][nextStep] = vs;
-                decreaseKey(minHeap, vt * N + nextStep, dist[vt][nextStep], nextStep);
+                dist[vert_target][next_step] = dist[vert_source][curr_step] + weight;
+                parent_node[vert_target][next_step] = vert_source;
+                decrease_key(heap, vert_target * N + next_step, dist[vert_target][next_step], next_step);
             }
         }
     }
 
     // Find the minimum distance to the destination considering all steps
-    int min_dist = INF;
+    int min_dist = BIG;
     int min_step = -1;
     for (int step = 0; step < N; step++)
     {
@@ -194,20 +205,21 @@ void dijkstra(int source, int destination)
     }
 
     printf("%d ", source);
-    printPath(parent, destination, min_step);
+    print_path(parent_node, destination, min_step);
+    printf("\nTotal weight: %d", min_dist);
     printf("\n");
 
-    free(minHeap->pos);
-    free(minHeap->array);
-    free(minHeap);
+    free(heap->pos);
+    free(heap->arr);
+    free(heap);
 }
 
-void readGraph(char *filename)
+void read_graph(char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file!\n");
+        printf("Error openng file!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -215,19 +227,22 @@ void readGraph(char *filename)
 
     for (int i = 0; i < V; i++)
     {
-        graph[i].edge_count = 0;
+        graph[i].num_edges = 0;
     }
 
-    int vs, vt;
-    while (fscanf(file, "%d %d", &vs, &vt) != EOF)
+    int vert_source;
+    int vert_target;
+    while (fscanf(file, "%d %d", &vert_source, &vert_target) != EOF)
     {
-        Edge edge;
-        edge.target = vt;
+        struct Edge edge;
+        edge.target = vert_target;
         for (int i = 0; i < N; i++)
         {
             fscanf(file, "%d", &edge.weights[i]);
         }
-        graph[vs].edges[graph[vs].edge_count++] = edge;
+        int edge_index = graph[vert_source].num_edges;
+        graph[vert_source].num_edges++;
+        graph[vert_source].edges[edge_index] = edge;
     }
 
     fclose(file);
@@ -237,15 +252,14 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        printf("ERROR!\n");
+        printf("Error with files!\n");
         return(1);
     }
 
-    readGraph(argv[1]);
+    read_graph(argv[1]);
 
     int source;
     int destination;
-
     while (scanf("%d %d", &source, &destination) == 2)
     {
         dijkstra(source, destination);
