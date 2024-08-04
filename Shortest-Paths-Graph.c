@@ -233,14 +233,19 @@ void dijkstra(int source, int destination, Data data)
     {
         int path[2 * ADDON];
         int path_index = 0;
-        for (int at = destination * ADDON + min_step; at != -1; at = previous[at / MAX_WEIGHTS][at % MAX_WEIGHTS])
+        int current_node = destination * ADDON + min_step;
+
+        while (current_node != -1)
         {
-            path[path_index++] = at / ADDON;
+            path[path_index++] = current_node / ADDON;
+            current_node = previous[current_node / MAX_WEIGHTS][current_node % MAX_WEIGHTS];
         }
+
         for (int i = path_index - 1; i >= 0; i--)
         {
             printf("%d ", path[i]);
         }
+        
         printf("\n");
     }
 
