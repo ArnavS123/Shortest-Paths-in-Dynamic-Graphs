@@ -3,7 +3,7 @@
 #include <limits.h>
 
 #define INF INT_MAX
-#define MAX_LINES 20000
+#define MAX_LINES 50000
 #define MAX_WEIGHTS 10
 
 typedef struct
@@ -18,6 +18,7 @@ typedef struct
     int V; // Number of vertices in the graph
     int N; // Number of edge weights
     Edge edges[MAX_LINES]; // Array of edges
+    int edge_num; // number of edges
 } Data;
 
 typedef struct
@@ -157,66 +158,100 @@ void decrease_key(Heap* heap, int vertex_to_update, int new_distance, int new_st
 
 void dijkstra(int source, int destination, Data data)
 {
-    int distances[data.V];
-    int previous[data.V]; // Array to track the path
+    int distances[data.V][data.edge_num];
+    int previous[data.V][data.edge_num]; // Array to track the path
     int visited[data.V];
 
     for (int i = 0; i < data.V; i++) {
-        distances[i] = INF;
-        visited[i] = 0;
-        previous[i] = -1; // Initialize previous array
+        for (int j = 0; j < data.edge_num; j++)
+        {
+            distances[i][j] = INF;
+            visited[i] = 0;
+            previous[i][j] = -1; // Initialize previous array
+
+        }
     }
 
-    distances[source] = 0;
+    distances[source][0] = 0;
 
     Heap* minheap = build_heap(MAX_LINES);
 
-    for (int i = 0; i < data.V; i++) {
-        Node node = {i, distances[i], 0};
-        minheap->arr[i] = node;
-        minheap->curr_size++;
+    // Node node = {source, 0, 0};
+    // minheap->arr[0] = node;
+    // minheap->curr_size++;
+
+    for (int i = 0; i < data.V; i++)
+    {
+        for (int j = 0; j < data.edge_num; j++)
+        {
+            Node node = {i * data.edge_num + j, distances[i][j], j};
+            minheap->arr[i * data.edge_num + j] = node;
+            minheap->curr_size++;
+        }
     }
+
+    decrease_key(minheap, source * data.edge_num, 0, 0);
 
     while (minheap->curr_size > 0)
     {
         Node minNode = extract_min(minheap);
-        int u = minNode.vertex;
+        int u = minNode.vertex / data.edge_num;
+        int curr_step = minNode.step;
 
-        if (u == destination) {
-            printf("Shortest path distance: %d\n", distances[destination]);
+        // printf("u = %d\n", u);
 
-            // Output the path
-            int path[MAX_LINES];
-            int path_index = 0;
-            for (int at = destination; at != -1; at = previous[at]) {
-                path[path_index++] = at;
-            }
-            for (int i = path_index - 1; i >= 0; i--) {
-                printf("%d ", path[i]);
-            }
-            printf("\n");
-            break;
-        }
-
-        if (visited[u]) continue;
-        visited[u] = 1;
-
-        for (int i = 0; i < MAX_LINES; i++)
+        for (int i = 0; i < data.edge_num; i++)
         {
+            //printf("\nvs: %d - vt: %d - minstep: %d\n", data.edges[i].vs, data.edges[i].vt, minNode.step);
             if (data.edges[i].vs == u)
             {
                 int v = data.edges[i].vt;
                 // Select weight based on current step using modulo operation
-                int weight = data.edges[i].weights[minNode.step % data.N]; 
-
-                if (!visited[v] && distances[u] != INF && distances[u] + weight < distances[v])
+                int weight = data.edges[i].weights[minNode.step % data.N];
+                int next_step = (curr_step + 1) % data.edge_num;
+                if (distances[u][curr_step] != INF && distances[u][curr_step] + weight < distances[v][next_step])
                 {
-                    distances[v] = distances[u] + weight;
-                    previous[v] = u; // Track the path
-                    decrease_key(minheap, v, distances[v], minNode.step + 1);
+                    //printf("\n%d - %d - %d - %d - %d - %d\n", u, v, weight, distances[u][curr_step], distances[v][next_step], curr_step);
+                    distances[v][next_step] = distances[u][curr_step] + weight;
+                    //printf("\n%d - %d\n", v, distances[v][next_step]);
+                    previous[v][next_step] = u * data.edge_num + curr_step; // Track the path
+                    //printf("prev: %d\n", previous[v][next_step]);
+                    decrease_key(minheap, v * data.edge_num, distances[v][next_step], next_step);
                 }
             }
         }
+    }
+
+    int min_dist = INF;
+    int min_step = -1;
+    for (int step = 0; step < data.N; step++)
+    {
+        //printf("\nstep: %d - dist: %d\n", step, distances[destination][step]);
+        if (distances[destination][step] < min_dist)
+        {
+            min_dist = distances[destination][step];
+            min_step = step;
+        }
+    }
+
+    //printf("min: %d", min_step);
+
+    if (distances[destination][min_step] != INF)
+    {
+        printf("Shortest path distance: %d\n", distances[destination][min_step]);
+
+        // Output the path
+        int path[MAX_LINES];
+        int path_index = 0;
+        for (int at = destination * data.edge_num + min_step; at != -1; at = previous[at / data.edge_num][at % data.edge_num])
+        {
+            path[path_index++] = at / data.edge_num;
+        }
+        for (int i = path_index - 1; i >= 0; i--)
+        {
+            printf("%d ", path[i]);
+        }
+        printf("\n");
     }
 
     free(minheap->arr);
@@ -236,8 +271,10 @@ Data read_data(const char *filename)
     fscanf(data_file, "%d %d", &data.V, &data.N); // Read V (num of vertices) and N (num of weights)
 
     int i = 0;
+    data.edge_num = 0;
     while (fscanf(data_file, "%d %d", &data.edges[i].vs, &data.edges[i].vt) == 2) // Read vertex sources and targets
     {
+        data.edge_num++;
         for (int j = 0; j < data.N; j++)
         {
             fscanf(data_file, "%d", &data.edges[i].weights[j]); // Read weights

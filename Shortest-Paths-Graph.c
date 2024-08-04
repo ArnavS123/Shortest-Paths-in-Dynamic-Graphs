@@ -5,11 +5,12 @@
 #define INF INT_MAX
 #define MAX_LINES 20000
 #define MAX_WEIGHTS 10
+#define ADDON MAX_WEIGHTS
 
 typedef struct
 {
-    int vs; // vertex source (starting vertex)
-    int vt; // vertex target (ending vertex)
+    int vs; // Vertex source (starting vertex)
+    int vt; // Vertex target (ending vertex)
     int weights[MAX_WEIGHTS]; // Edge weights
 } Edge;
 
@@ -18,6 +19,7 @@ typedef struct
     int V; // Number of vertices in the graph
     int N; // Number of edge weights
     Edge edges[MAX_LINES]; // Array of edges
+    int edge_num; // Number of edges
 } Data;
 
 typedef struct
@@ -155,101 +157,96 @@ void decrease_key(Heap* heap, int vertex_to_update, int new_distance, int new_st
     }
 }
 
-void populate_heap(int* dist, Heap* heap, Data data)
-{
-    for (int i = 0; i < data.V; i++)
-    {
-        Node node;
-        node.vertex = i;
-        node.distance = dist[i];
-        node.step = 0;
-
-        heap->arr[i] = node;
-        heap->curr_size++;
-    }
-}
-
-/*
-    Dijkstra's Algorithm Pseudocode:
-    set all distances to INF
-    set all predecessors to none
-    set all vertices to unexplored
-    populate heap
-    set distance of source to 0
-    while heap:
-        u = least-valued unexplored vertex
-        Set u to explored
-        for each edge (u, v):
-            if dist[u] + len(u, v) < dist[v]:
-                dist[v] = dist[u] + len(u, v)
-                prev[v] = u
-*/
-
 void dijkstra(int source, int destination, Data data)
 {
-    Heap* minheap = build_heap(MAX_LINES);
-    
-    int dist[data.V];
-    int prev[data.V]; // Array that tracks path (IMPORTANT)
-    int explored[data.V];
+    int distance[data.V][ADDON]; // 2D array of distances between vertices (cumulative weights)
+    int previous[data.V][ADDON]; // Array to track the path
+    int visited[data.V][ADDON]; // Visited / Explored vertices
 
     for (int i = 0; i < data.V; i++)
     {
-        dist[i] = INF; // Set all distances to 
-        prev[i] = -1; // Dummy value
-        explored[i] = 0; // Set all vertices to unexplored
+        for (int j = 0; j < ADDON; j++)
+        {
+            distance[i][j] = INF; // Initialize distances 2D array
+            visited[i][j] = 0; // Initialize visited / explored vertices
+            previous[i][j] = -1; // Initialize previous array
+        }
     }
 
-    dist[source] = 0; // Set distance to source to 0
+    distance[source][0] = 0; // Initialize source to have 0 distance
 
-    populate_heap(dist, minheap, data);
+    Heap* minheap = build_heap(data.V * ADDON); // Create minheap
+
+    // Populate minheap
+    for (int i = 0; i < data.V; i++)
+    {
+        for (int j = 0; j < ADDON; j++)
+        {
+            Node node = {i * ADDON + j, distance[i][j], j};
+            minheap->arr[i * ADDON + j] = node;
+            (minheap->curr_size)++;
+        }
+    }
+
+    // Initialize source vertex in minheap with a distance of 0 and step 0
+    decrease_key(minheap, source * ADDON, 0, 0);
 
     while (minheap->curr_size > 0)
     {
-        Node min = extract_min(minheap); // Get min value from heap
-        int u = min.vertex; // Next vertex (has smallest distance)
+        // Get root (smallest value) of minheap
+        Node minNode = extract_min(minheap);
+        int u = minNode.vertex / ADDON;
+        int curr_step = minNode.step;
 
-        if (u == destination)
-        {
-            int path[MAX_LINES];
-            int path_index = 0;
-
-            for (int at = destination; at != -1; at = prev[at])
-            {
-                path[path_index++] = at;
-            }
-
-            for (int i = path_index - 1; i >= 0; i--)
-            {
-                printf("%d ", path[i]);
-            }
-
-            printf("\n");
-            break;
-        }
-
-        if (explored[u])
-        {
-            continue;
-        }
-        explored[u] = 1;
-
-        for (int i = 0; i < MAX_LINES; i++)
+        for (int i = 0; i < data.edge_num; i++)
         {
             if (data.edges[i].vs == u)
             {
+                // Update comparison values
                 int v = data.edges[i].vt;
-                int weight = data.edges[i].weights[min.step % data.N];
-
-                if (!explored[v] && dist[u] != INF && dist[u] + weight < dist[v])
+                int weight = data.edges[i].weights[minNode.step % data.N];
+                int next_step = (curr_step + 1) % ADDON;
+                if (distance[u][curr_step] != INF && distance[u][curr_step] + weight < distance[v][next_step]) // Progress to next vertex
                 {
-                    dist[v] = dist[u] + weight;
-                    prev[v] = u; // Path
-                    decrease_key(minheap, v, dist[v], min.step + 1);
+                    distance[v][next_step] = distance[u][curr_step] + weight; // Distance from source increases
+                    previous[v][next_step] = u * ADDON + curr_step; // Path backtracking
+                    decrease_key(minheap, v * ADDON + next_step, distance[v][next_step], next_step); // Update the distance and step of vertex in minheap with newly calculated shortest distance
                 }
             }
         }
     }
+
+    // Find the minimum distance and steps to the destination considering all steps
+    int min_dist = INF;
+    int min_step = -1;
+    for (int step = 0; step < ADDON; step++)
+    {
+        if (distance[destination][step] < min_dist)
+        {
+            min_dist = distance[destination][step];
+            min_step = step;
+        }
+    }
+
+    // Print shortest path
+    if (min_dist != INF)
+    {
+        int path[2 * ADDON];
+        int path_index = 0;
+        for (int at = destination * ADDON + min_step; at != -1; at = previous[at / MAX_WEIGHTS][at % MAX_WEIGHTS])
+        {
+            path[path_index++] = at / ADDON;
+        }
+        for (int i = path_index - 1; i >= 0; i--)
+        {
+            printf("%d ", path[i]);
+        }
+        printf("\n");
+    }
+
+    // Free minheap and array
+    free(minheap->arr);
+    free(minheap);
 }
 
 Data read_data(const char *filename)
@@ -265,8 +262,10 @@ Data read_data(const char *filename)
     fscanf(data_file, "%d %d", &data.V, &data.N); // Read V (num of vertices) and N (num of weights)
 
     int i = 0;
+    data.edge_num = 0;
     while (fscanf(data_file, "%d %d", &data.edges[i].vs, &data.edges[i].vt) == 2) // Read vertex sources and targets
     {
+        data.edge_num++;
         for (int j = 0; j < data.N; j++)
         {
             fscanf(data_file, "%d", &data.edges[i].weights[j]); // Read weights
